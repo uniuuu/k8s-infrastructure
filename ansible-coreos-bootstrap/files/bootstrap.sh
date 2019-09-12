@@ -2,6 +2,9 @@
 
 set -e
 
+
+HOME=/home/core
+
 cd
 
 if [[ -e $HOME/.bootstrapped ]]; then
@@ -21,8 +24,8 @@ mv -n pypy-$PYPY_VERSION-linux64 pypy
 
 ## library fixup
 mkdir -p pypy/lib
-[ -f /lib64/libncurses.so.5.9 ] && ln -snf /lib64/libncurses.so.5.9 $HOME/pypy/lib/libtinfo.so.5
-[ -f /lib64/libncurses.so.6.1 ] && ln -snf /lib64/libncurses.so.6.1 $HOME/pypy/lib/libtinfo.so.5
+[ -f /lib64/libncurses.so.5.9 ] && ln -snf /lib64/libncurses.so.5.9 $HOME/pypy/bin/libtinfo.so.5
+[ -f /lib64/libncurses.so.6.1 ] && ln -snf /lib64/libncurses.so.6.1 $HOME/pypy/bin/libtinfo.so.5
 
 mkdir -p $HOME/bin
 
