@@ -1,0 +1,152 @@
+---
+- hosts: all
+  gather_facts: False
+  roles:
+    - defunctzombie.coreos-bootstrap
+ 
+  become: true
+  tasks:
+  - name: Install packages that allow apt to be used over HTTPS
+    dnf:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - curl
+      - iptables
+      - libcgroup
+
+  - name: add Kubernetes' YUM repository
+    yum_repository:
+     name: Kubernetes
+     description: Kubernetes YUM repository
+     baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+     gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+     gpgcheck: yes
+
+
+  - name: Add Docker repo
+    get_url:
+      url: https://download.docker.com/linux/centos/docker-ce.repo
+      dest: /etc/yum.repos.d/docer-ce.repo
+    become: yes
+
+  - name: Enable Docker Edge repo
+    ini_file:
+      dest: /etc/yum.repos.d/docer-ce.repo
+      section: 'docker-ce-edge'
+      option: enabled
+      value: 0
+    become: yes
+
+  - name: Enable Docker Test repo
+    ini_file:
+      dest: /etc/yum.repos.d/docer-ce.repo
+      section: 'docker-ce-test'
+      option: enabled
+      value: 0
+    become: yes
+   
+
+    #  - name: install the containerd.io rpm from a remote repo
+    #    dnf:
+    #      name: 'https://download.docker.com/linux/fedora/30/x86_64/stable/Packages/containerd.io-1.2.6-3.3.fc30.x86_64.rpm'
+    #      state: present
+
+  - name: Install docker and its dependecies
+    dnf: 
+      name:
+      - docker-ce 
+      - docker-ce-cli 
+      - containerd.io
+      state: present
+      update_cache: yes
+    notify:
+    - docker status
+
+  - name: Add vagrant user to docker group
+    user:
+      name: vagrant
+      group: docker
+
+  - name: Remove swapfile from /etc/fstab
+    mount:
+      name: "{{ item }}"
+      fstype: swap
+      state: absent
+    with_items:
+      - swap
+      - none
+
+  - name: Disable swap
+    command: swapoff -a
+    when: ansible_swaptotal_mb > 0
+
+  - name: Install Kubernetes binaries
+    dnf: 
+      update_cache: yes
+      name: 
+        - kubelet 
+        - kubeadm 
+        - kubectl
+      state: present
+
+          #  - name: Configure node ip
+          #    lineinfile:
+          #      path: /etc/default/kubelet
+          #      line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
+
+
+  - name: Start docker
+    systemd:
+      name: docker
+      daemon_reload: yes
+      state: started
+      enabled: yes
+      masked: no
+
+
+  - name: Restart kubelet
+    systemd:
+      name: kubelet
+      daemon_reload: yes
+      state: restarted
+      enabled: yes
+      masked: no
+
+
+
+  - name: Initialize the Kubernetes cluster using kubeadm
+    command: kubeadm init --pod-network-cidr=10.244.0.0/16
+    notify:
+    - kubelet status
+
+  - name: Create kubeconfig directory for vagrant user
+    file:
+      path: /home/vagrant/.kube
+      state: directory
+
+
+  - name: Setup kubeconfig for vagrant user
+    command: "{{ item }}"
+    with_items:
+     - cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
+     - chown vagrant:vagrant /home/vagrant/.kube/config
+
+  - name: Install calico pod network
+    become: false
+    command: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/62e44c867a2846fefb68bd5f178daf4da3095ccb/Documentation/kube-flannel.yml
+
+  - name: Generate join command
+    command: kubeadm token create --print-join-command
+    register: join_command
+
+  - name: Copy join command to local file
+    local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+
+  handlers:
+    - name: docker status
+      service: name=docker state=started
+    - name: kubelet status
+      service: name=kubelet state=started
