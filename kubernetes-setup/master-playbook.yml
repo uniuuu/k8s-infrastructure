@@ -1,0 +1,131 @@
+---
+- hosts: all
+  #  strategy: debug
+  gather_facts: False
+  roles:
+    - defunctzombie.coreos-bootstrap
+  become: true
+  vars:
+      ansible_python_interpreter: /home/core/bin/python
+
+  tasks:
+
+    - name: Update
+      block:
+
+      - name: Update CoreOs
+        command: "update_engine_client -update"
+        register: command_result
+        failed_when: "'Update faile' not in command_result.stderr"
+
+
+      - name: reboot CoreOs after update
+        reboot:
+           reboot_timeout: 60
+           
+      become: yes
+      tags:
+         - update
+
+
+    - name: Configure custom systemd unit file override
+      template:
+         src: custom.conf
+         dest: "/etc/systemd/system/docker.service.d/custom.conf"
+         owner: "root"
+         group: "root"
+         mode: "0644"
+
+    - name: Restart docker
+      systemd:
+        name: docker
+        daemon_reload: yes
+        state: started
+        enabled: yes
+        masked: no
+
+    - name: Installation
+      block:
+          #     - name: Add vagrant user to docker group
+          #        user:
+          #          name: vagrant
+          #          group: docker
+    
+      - name: Transfer the script
+        copy: src=kubeadm.sh dest=/home/core mode=0777
+
+
+      - name: Install Kubernetes binaries
+        shell: /home/core/kubeadm.sh >> k8s_install_log.txt   
+
+
+    
+    
+    
+      - name: Restart kubelet
+        systemd:
+          name: kubelet
+          daemon_reload: yes
+          state: restarted
+          enabled: yes
+          masked: no
+    
+    
+      become: yes
+      tags:
+         - install
+
+    - name: Initialization
+      block:
+      
+
+      - name: Initialize the Kubernetes cluster using kubeadm
+        command: kubeadm init --pod-network-cidr=10.244.0.0/16
+        notify:
+        - kubelet status
+
+    
+      become: yes
+      tags: 
+        - init
+
+    - name: Kubeconfig
+      block:
+
+      - name: Create kubeconfig directory for core user
+        file:
+          path: /home/core/.kube
+          state: directory
+    
+    
+      - name: Setup kubeconfig for core user
+        copy:
+          src: /etc/kubernetes/admin.conf 
+          dest:  /home/core/.kube/config
+          owner: core
+          group: core
+          remote_src: yes
+
+
+      - name: Install flannel network
+        become_user: core
+        command: "/opt/bin/kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/62e44c867a2846fefb68bd5f178daf4da3095ccb/Documentation/kube-flannel.yml"
+    
+      - name: Generate join command
+        command: kubeadm token create --print-join-command
+        register: join_command
+    
+      - name: Copy join command to local file
+        local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+         
+      become: yes
+      tags: 
+        - kubeconfig
+
+
+  handlers:
+    - name: docker status
+      service: name=docker state=started
+    - name: kubelet status
+      service: name=kubelet state=started
+  
