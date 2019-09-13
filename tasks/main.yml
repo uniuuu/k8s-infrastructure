@@ -1,9 +1,7 @@
 - name: Check if bootstrap is needed
   raw: stat /home/core/.bootstrapped
   register: need_bootstrap
-  register: command_result
-       failed_when: "'No such' not in command_result.stderr"
-
+  failed_when: "'Shared connection' not in need_bootstrap.stderr"
 
 - name: Run bootstrap.sh
   script: bootstrap.sh
@@ -11,14 +9,14 @@
   delay: 3
   register: result
   until: result.rc == 0
-  when: need_bootstrap is failed
+  when: "'No such file or directory' in need_bootstrap.stdout"
 
 - name: Check if we need to install pip
   shell: "{{ansible_python_interpreter}} -m pip --version"
   register: need_pip
   ignore_errors: True
   changed_when: false
-  when: need_bootstrap is failed
+  when: "'No such file or directory' in need_bootstrap.stdout"
 
 - name: Copy get-pip.py
   copy: src=get-pip.py dest=/home/core/get-pip.py
