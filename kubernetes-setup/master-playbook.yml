@@ -3,7 +3,7 @@
   #  strategy: debug
   gather_facts: False
   roles:
-    - defunctzombie.coreos-bootstrap
+    - coreosbootstrap
   become: true
   vars:
       ansible_python_interpreter: /home/core/bin/python
@@ -14,9 +14,9 @@
       block:
 
       - name: Update CoreOs
-        command: "update_engine_client -update"
+        command: "/usr/bin/update_engine_client -update"
         register: command_result
-        failed_when: "'Update faile' not in command_result.stderr"
+        failed_when: "'Initiating' not in command_result.stderr"
 
 
       - name: reboot CoreOs after update
