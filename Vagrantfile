@@ -18,6 +18,7 @@ Vagrant.configure("2") do |config|
         master.vm.hostname = "k8s-master"
         master.vm.provision "ansible" do |ansible|
             ansible.playbook = "kubernetes-setup/master-playbook.yml"
+            ansible.inventory_path = "kubernetes-setup/hosts"
             ansible.extra_vars = {
                 node_ip: "10.10.50.10",
             }

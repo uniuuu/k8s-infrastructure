@@ -22,10 +22,41 @@
       - name: reboot CoreOs after update
         reboot:
            reboot_timeout: 60
+          
+          
+      - name: recreate link for libtinfo.so.5 after CoreOS Update
+        raw: "[ -f /lib64/libncurses.so.6.1 ] &&  ln -snf /lib64/libncurses.so.6.1 /home/core/pypy/bin/libtinfo.so.5"
+
+
+           #        include_role:
+           #             name: coreosbootstrap
            
       become: yes
       tags:
          - update
+
+          
+    - name: check if link to libncurses.so.5.9 is not broken
+      stat: path=/home/core/pypy/bin/libtinfo.so.5
+      register: links
+     
+    - debug: msg="link exists"
+      when: links.stat.islnk is defined and links.stat.islnk
+
+    - name: Create a symbolic link
+      file:
+        src: /lib64/libncurses.so.6.1
+        dest: /home/core/pypy/bin/libtinfo.so.5
+        owner: core
+        group: core
+        state: link
+      when: "links.stat.exists == False or links.stat.islnk == False"
+
+
+    - name: Create docker.service.d directory for custom.conf
+      file:
+         path: /etc/systemd/system/docker.service.d/
+         state: directory
 
 
     - name: Configure custom systemd unit file override
