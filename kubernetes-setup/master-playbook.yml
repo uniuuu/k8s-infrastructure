@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: '{{ target }}'
   #  strategy: debug
   gather_facts: False
   roles:
@@ -24,35 +24,11 @@
            reboot_timeout: 60
           
           
-      - name: recreate link for libtinfo.so.5 after CoreOS Update
-        raw: "[ -f /lib64/libncurses.so.6.1 ] &&  ln -snf /lib64/libncurses.so.6.1 /home/core/pypy/bin/libtinfo.so.5"
-
-
-           #        include_role:
-           #             name: coreosbootstrap
-           
       become: yes
       tags:
          - update
 
           
-    - name: check if link to libncurses.so.5.9 is not broken
-      stat: path=/home/core/pypy/bin/libtinfo.so.5
-      register: links
-     
-    - debug: msg="link exists"
-      when: links.stat.islnk is defined and links.stat.islnk
-
-    - name: Create a symbolic link
-      file:
-        src: /lib64/libncurses.so.6.1
-        dest: /home/core/pypy/bin/libtinfo.so.5
-        owner: core
-        group: core
-        state: link
-      when: "links.stat.exists == False or links.stat.islnk == False"
-
-
     - name: Create docker.service.d directory for custom.conf
       file:
          path: /etc/systemd/system/docker.service.d/
@@ -74,13 +50,12 @@
         state: started
         enabled: yes
         masked: no
+      notify:
+      - docker status
+
 
     - name: Installation
       block:
-          #     - name: Add vagrant user to docker group
-          #        user:
-          #          name: vagrant
-          #          group: docker
     
       - name: Transfer the script
         copy: src=kubeadm.sh dest=/home/core mode=0777
@@ -147,8 +122,18 @@
         register: join_command
     
       - name: Copy join command to local file
-        local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
-         
+        local_action:  copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+        vars:
+          ansible_python_interpreter:
+
+      - name: Copy kubeconfig to local file
+        fetch: 
+          src: /home/core/.kube/config
+          dest: kubeconfig
+          flat: yes
+          #        vars:
+          #          ansible_python_interpreter:
+
       become: yes
       tags: 
         - kubeconfig
@@ -159,4 +144,4 @@
       service: name=docker state=started
     - name: kubelet status
       service: name=kubelet state=started
-  
+

@@ -1,11 +1,16 @@
 [masters]
-testing ansible_host=10.10.50.10 ansible_port=22 ansible_user='core' ansible_ssh_private_key_file='/root/.vagrant.d/insecure_private_key'
+master-1 ansible_host=10.10.10.11 ansible_port=22 ansible_user='core' ansible_ssh_private_key_file='/root/.vagrant.d/insecure_private_key' ansible_python_interpreter=/home/core/bin/python
 
 
-[masters:vars]
-ansible_ssh_user=core
-ansible_python_interpreter=/home/core/bin/python
+#[masters:vars]
+#ansible_ssh_user=core
+#ansible_python_interpreter=/home/core/bin/python
 
 [workers]
-#worker1 ansible_host=worker_1_ip ansible_user=root
-#worker2 ansible_host=worker_2_ip ansible_user=root
+worker-1 ansible_host=10.10.10.21 ansible_port=22 ansible_user='core' ansible_ssh_private_key_file='/root/.vagrant.d/insecure_private_key' ansible_python_interpreter=/home/core/bin/python
+worker-2 ansible_host=10.10.10.22 ansible_port=22 ansible_user='core' ansible_ssh_private_key_file='/root/.vagrant.d/insecure_private_key' ansible_python_interpreter=/home/core/bin/python
+worker-3 ansible_host=10.10.10.23 ansible_port=22 ansible_user='core' ansible_ssh_private_key_file='/root/.vagrant.d/insecure_private_key' ansible_python_interpreter=/home/core/bin/python
+
+[fedora]
+worker-4 ansible_host=10.10.10.24 ansible_port=22 ansible_user='vagrant' ansible_ssh_private_key_file='/root/.vagrant.d/insecure_private_key'
+client-1 ansible_host=10.10.10.31 ansible_port=22 ansible_user='vagrant' ansible_ssh_private_key_file='/root/.vagrant.d/insecure_private_key'

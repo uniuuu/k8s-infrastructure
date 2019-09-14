@@ -14,22 +14,23 @@
 - name: Check if we need to install pip
   shell: "{{ansible_python_interpreter}} -m pip --version"
   register: need_pip
-  ignore_errors: True
+  #  ignore_errors: True
+  failed_when: "'No module named pip' not in need_pip.stderr"
   changed_when: false
   when: "'No such file or directory' in need_bootstrap.stdout"
 
 - name: Copy get-pip.py
   copy: src=get-pip.py dest=/home/core/get-pip.py
-  when: need_pip is failed
+  when: "'No module named pip' in need_pip"
 
 - name: Install pip
   shell: "{{ansible_python_interpreter}} /home/core/get-pip.py"
-  when: need_pip is failed
+  when: "'No module named pip' in need_pip"
 
 - name: Remove get-pip.py
   file: path=/home/core/get-pip.py state=absent
-  when: need_pip is failed
+  when: "'No module named pip' in need_pip"
 
 - name: Install pip launcher
   copy: src=runner dest=/home/core/bin/pip mode=0755
-  when: need_pip is failed
+  when: "'No module named pip' in need_pip"

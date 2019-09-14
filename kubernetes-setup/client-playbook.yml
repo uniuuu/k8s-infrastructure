@@ -1,0 +1,56 @@
+---
+- hosts: '{{ target }}'
+  become: true
+  tasks:
+  - name: Install packages that allow apt to be used over HTTPS
+    dnf:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - curl
+      - iptables
+      - libcgroup
+
+  - name: add Kubernetes' YUM repository
+    yum_repository:
+     name: Kubernetes
+     description: Kubernetes YUM repository
+     baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+     gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+     gpgcheck: yes
+
+
+
+      #  - name: Remove swapfile from /etc/fstab
+      #    mount:
+      #      name: "{{ item }}"
+      #      fstype: swap
+      #      state: absent
+      #    with_items:
+      #      - swap
+      #      - none
+
+      #  - name: Disable swap
+      #    command: swapoff -a
+      #    when: ansible_swaptotal_mb > 0
+
+  - name: Install Kubernetes binaries
+    dnf: 
+      update_cache: yes
+      name: 
+        - kubectl
+      state: present
+
+  - name: Create .kube directory for config
+    file:
+      path: ~/.kube/
+      state: directory
+    become: false
+
+  - name: Copy kubeconfig to server location
+    copy: src=kubeconfig dest=~/.kube/config mode=0777
+    become: false
+
+

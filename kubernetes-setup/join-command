@@ -1,1 +1,0 @@
-kubeadm join 172.25.50.50:6443 --token te65by.zhwc6ttpnybcn5wh     --discovery-token-ca-cert-hash sha256:bb404e0a362ac08027515290a3e4a4d2d1aa9082ec7429c70ec9311e093af750 

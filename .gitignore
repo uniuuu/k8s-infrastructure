@@ -8,3 +8,6 @@
 ### Vagrant Patch ###
 *.box
 
+##
+kubernetes-setup/join-command
+kubernetes-setup/kubeconfig
