@@ -1,6 +1,6 @@
 ---
-- hosts: '{{ target }}'
-  #  strategy: debug
+- hosts: masters
+  strategy: debug
   gather_facts: False
   roles:
     - coreosbootstrap
@@ -86,7 +86,7 @@
       
 
       - name: Initialize the Kubernetes cluster using kubeadm
-        command: kubeadm init --pod-network-cidr=10.244.0.0/16
+        command: kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address 10.10.10.11
         notify:
         - kubelet status
 

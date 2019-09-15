@@ -1,5 +1,6 @@
 ---
 - hosts: '{{ target }}'
+  strategy: debug
   become: true
   tasks:
   - name: Install packages that allow apt to be used over HTTPS

@@ -21,7 +21,7 @@
 
       - name: reboot CoreOs after update
         reboot:
-           reboot_timeout: 60
+           reboot_timeout: 120
            
       become: yes
       tags:
@@ -60,6 +60,13 @@
 
       - name: Install Kubernetes binaries
         shell: /home/core/kubeadm.sh >> k8s_install_log.txt   
+
+
+      - name: Create manifests directory for kubeadm
+        file:
+         path: /etc/kubernetes/manifests/
+         state: directory
+
 
       - name: Restart kubelet
         systemd:

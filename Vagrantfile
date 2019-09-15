@@ -20,9 +20,30 @@ Vagrant.configure("2") do |config|
     libvirt.uri = "qemu:///system"
     libvirt.qemu_use_session = false
   end
+
+  config.vm.define "master-1", primary: true do |master|
+          master.vm.box = "dongsupark/coreos-stable"
+          master.vm.network "private_network", ip: "10.10.10.11"
+          master.vm.hostname = "master-1"
+          master.vm.provision "ansible" do |ansible|
+              ansible.playbook = "kubernetes-setup/master-playbook.yml"
+              ansible.inventory_path = "kubernetes-setup/hosts"
+              ansible.extra_vars = {
+                  node_ip: "10.10.10.11",
+              }
+          end
+          master.vm.provider :libvirt do |libvirt|
+            libvirt.cpus   = 2
+            libvirt.memory = 2048
+          end
+
+
+
+   end
+
+
  
   cluster = {
-    "master-1" => { :box => "dongsupark/coreos-stable", :ip => "10.10.10.11", :cpus => 2, :memory => 2048, :playbook => "kubernetes-setup/master-playbook.yml" },
     "worker-1" => { :box => "dongsupark/coreos-stable", :ip => "10.10.10.21", :cpus => 1, :memory => 4096, :disk => "20G", :playbook => "kubernetes-setup/node-playbook.yml" },
     "worker-2" => { :box => "dongsupark/coreos-stable", :ip => "10.10.10.22", :cpus => 1, :memory => 4096, :disk => "20G", :playbook => "kubernetes-setup/node-playbook.yml" },
     "worker-3" => { :box => "dongsupark/coreos-stable", :ip => "10.10.10.23", :cpus => 1, :memory => 4096, :disk => "20G", :playbook => "kubernetes-setup/node-playbook.yml" },

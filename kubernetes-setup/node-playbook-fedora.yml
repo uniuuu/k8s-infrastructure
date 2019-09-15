@@ -1,5 +1,6 @@
 ---
 - hosts: '{{ target }}'
+  strategy: debug
   become: true
   tasks:
   - name: Install packages that allow apt to be used over HTTPS
@@ -88,8 +89,9 @@
 
   - name: Configure node ip
     lineinfile:
-      path: /etc/default/kubelet
+      path: /etc/sysconfig/kubelet
       line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
+      create: true
 
 
   - name: Start docker
