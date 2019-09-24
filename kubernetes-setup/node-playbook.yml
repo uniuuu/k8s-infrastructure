@@ -1,9 +1,13 @@
 ---
 - hosts: '{{ target }}'
-  #  strategy: debug
+  strategy: debug
   gather_facts: False
   roles:
     - coreosbootstrap
+  become: true
+
+- hosts: '{{ target }}'
+  gather_facts: True
   become: true
   vars:
       ansible_python_interpreter: /home/core/bin/python
@@ -19,9 +23,9 @@
         failed_when: "'Initiating' not in command_result.stderr"
 
 
-      - name: reboot CoreOs after update
-        reboot:
-           reboot_timeout: 120
+        #      - name: reboot CoreOs after update
+        #        reboot:
+        #           reboot_timeout: 120
            
       become: yes
       tags:

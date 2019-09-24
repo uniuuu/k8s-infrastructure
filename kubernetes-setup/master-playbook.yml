@@ -5,10 +5,20 @@
   roles:
     - coreosbootstrap
   become: true
+
+
+- hosts: masters
+  gather_facts: True
+  become: true
   vars:
       ansible_python_interpreter: /home/core/bin/python
-
+      
   tasks:
+    - debug: var=ansible_all_ipv4_addresses
+    - debug: var=ansible_default_ipv4.address
+    - debug: var=hostvars[inventory_hostname]['ansible_eth2']['ipv4']['address']
+      #    - debug: var=hostvars[inventory_hostname]['ansible_default_ipv4']['address']
+    - debug: var=hostvars[inventory_hostname]['ansible_default_ipv6']['address']
 
     - name: Update
       block:
@@ -19,9 +29,9 @@
         failed_when: "'Initiating' not in command_result.stderr"
 
 
-      - name: reboot CoreOs after update
-        reboot:
-           reboot_timeout: 60
+        #      - name: reboot CoreOs after update
+        #        reboot:
+        #           reboot_timeout: 60
           
           
       become: yes
@@ -62,10 +72,12 @@
 
 
       - name: Install Kubernetes binaries
-        shell: /home/core/kubeadm.sh >> k8s_install_log.txt   
+        shell: /home/core/kubeadm.sh >> k8s_install_log.txt  
+        #        retries: 5
+        #        delay: 3
+        #        register: result
+        #        until: result.rc == 0
 
-
-    
     
     
       - name: Restart kubelet
@@ -86,7 +98,7 @@
       
 
       - name: Initialize the Kubernetes cluster using kubeadm
-        command: kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address 10.10.10.11
+        command: kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address {{ ansible_eth2.ipv4.address }}
         notify:
         - kubelet status
 
@@ -115,7 +127,7 @@
 
       - name: Install flannel network
         become_user: core
-        command: "/opt/bin/kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/62e44c867a2846fefb68bd5f178daf4da3095ccb/Documentation/kube-flannel.yml"
+        command: "/opt/bin/kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
     
       - name: Generate join command
         command: kubeadm token create --print-join-command
